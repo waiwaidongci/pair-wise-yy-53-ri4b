@@ -2,6 +2,7 @@
 
 import { ChakraProvider, extendTheme } from '@chakra-ui/react'
 import { TrpcProvider } from '@/trpc/provider'
+import { DraftLoader } from '@/components/DraftLoader'
 
 const theme = extendTheme({
   fonts: { heading: '"PingFang SC", "Microsoft YaHei", sans-serif', body: '"PingFang SC", "Microsoft YaHei", sans-serif' },
@@ -9,5 +10,5 @@ const theme = extendTheme({
 })
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <ChakraProvider theme={theme}><TrpcProvider>{children}</TrpcProvider></ChakraProvider>
+  return <ChakraProvider theme={theme}><TrpcProvider><DraftLoader>{children}</DraftLoader></TrpcProvider></ChakraProvider>
 }

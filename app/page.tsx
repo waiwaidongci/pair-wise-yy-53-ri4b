@@ -6,23 +6,37 @@ import { useRightsStore, useConflicts } from '@/store/rights'
 import { trpc } from '@/trpc/client'
 
 export default function Dashboard() {
-  const windows = useRightsStore((state) => state.windows)
-  const comments = useRightsStore((state) => state.comments)
-  const version = useRightsStore((state) => state.version)
+  const draft = useRightsStore((state) => state.draft)
+  const pendingOps = useRightsStore((state) => state.pendingOps)
+  const windows = draft.windows
+  const comments = draft.comments
+  const revision = draft.revision
+  const gate = draft.gate
   const conflicts = useConflicts()
   const catalog = trpc.catalog.useQuery()
+  const pendingReview = draft.reviewItems.filter((item) => item.status === '待审阅').length
   const cards = [
     { label: '授权窗口', value: windows.length, note: `${catalog.data?.works.length ?? 2} 部作品` },
     { label: '责任地区', value: new Set(windows.map((item) => item.territory)).size, note: '联动地区矩阵' },
     { label: '高优先级冲突', value: conflicts.filter((item) => item.severity === '高').length, note: '阻止审批通过' },
-    { label: '当前草案', value: `v${version}`, note: '自动保留本地版本' },
+    { label: '当前修订号', value: `v${revision}`, note: gate.status === '可批准' ? '门禁已通过' : `门禁 · ${gate.status}` },
   ]
   return (
     <Box>
       <Flex justify="space-between" align="flex-start" gap={4} mb={5} direction={{ base: 'column', md: 'row' }}>
-        <Box><Text color="brand.600" fontSize="xs" fontWeight="bold">版权窗口与独占规则</Text><Heading fontSize={{ base: '2xl', md: '3xl' }} my={1}>授权窗口审阅总览</Heading><Text color="gray.600">联动核验时间、地区、渠道、权利类型与独占范围，修改在审批前保留完整版本。</Text></Box>
+        <Box><Text color="brand.600" fontSize="xs" fontWeight="bold">版权窗口与独占规则 · 双端草稿</Text><Heading fontSize={{ base: '2xl', md: '3xl' }} my={1}>授权窗口审阅总览</Heading><Text color="gray.600">打开带修订号 v{revision}，提交只写改过的字段；地区/日期变更后冲突重算、意见待复核、门禁更新。</Text></Box>
         <Flex gap={2}><Button as={Link} href="/reviews" variant="outline">比较版本</Button><Button as={Link} href="/windows" colorScheme="blue">调整窗口</Button></Flex>
       </Flex>
+
+      {gate.status === '审批中' && (
+        <Box mb={4} p={3} bg="orange.50" borderLeft="3px solid" borderLeftColor="orange.400" borderRadius="6px">
+          <Flex justify="space-between" align="center" wrap="wrap" gap={2}>
+            <Box><Text fontWeight="700" fontSize="sm">版本审批门禁 · 审批中</Text><Text fontSize="sm" color="gray.600">{gate.blockers.join('；')}</Text></Box>
+            {pendingReview > 0 && <Badge colorScheme="orange">{pendingReview} 项双端来源待审阅</Badge>}
+          </Flex>
+        </Box>
+      )}
+
       <Grid templateColumns={{ base: 'repeat(2,1fr)', lg: 'repeat(4,1fr)' }} gap={4} mb={5}>
         {cards.map((card) => <Box key={card.label} bg="white" border="1px solid" borderColor="gray.200" borderLeft="4px solid" borderLeftColor="brand.500" borderRadius="8px" p={4}><Text color="gray.500" fontSize="sm">{card.label}</Text><Heading size="lg" my={1}>{card.value}</Heading><Text color="gray.500" fontSize="xs">{card.note}</Text></Box>)}
       </Grid>
@@ -41,7 +55,7 @@ export default function Dashboard() {
           <Heading size="md" mb={4}>冲突解释</Heading>
           {conflicts.slice(0, 3).map((issue) => <Box key={issue.id} p={3} mb={3} bg={issue.severity === '高' ? 'red.50' : 'orange.50'} borderLeft="3px solid" borderLeftColor={issue.severity === '高' ? 'red.500' : 'orange.400'} borderRadius="6px"><Flex justify="space-between"><Text fontWeight="700" fontSize="sm">{issue.title}</Text><Badge colorScheme={issue.severity === '高' ? 'red' : 'orange'}>{issue.type}</Badge></Flex><Text fontSize="sm" color="gray.600" mt={2}>{issue.explanation}</Text></Box>)}
           <Progress value={Math.max(0, 100 - conflicts.length * 18)} colorScheme="blue" borderRadius="4px" mt={4} />
-          <Text color="gray.500" fontSize="xs" mt={2}>规则完备度 {Math.max(0, 100 - conflicts.length * 18)}% · {comments.filter((item) => !item.resolved).length} 条意见待处理</Text>
+          <Text color="gray.500" fontSize="xs" mt={2}>规则完备度 {Math.max(0, 100 - conflicts.length * 18)}% · {comments.filter((item) => !item.resolved).length} 条意见待处理{pendingOps.length ? ` · ${pendingOps.length} 项改动未提交` : ''}</Text>
         </Box>
       </Grid>
       <Box bg="white" border="1px solid" borderColor="gray.200" borderRadius="8px" overflow="hidden">
