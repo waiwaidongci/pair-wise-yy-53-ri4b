@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 62053",
     "build": "next build",
-    "start": "next start -H 0.0.0.0 -p 62053"
+    "start": "next start -H 0.0.0.0 -p 62053",
+    "test": "tsc --outDir .test-build --module commonjs --moduleResolution node --target ES2022 --noEmit false --strict --skipLibCheck --esModuleInterop --types node tests/engine.test.ts lib/draft/*.ts lib/rules.ts lib/types.ts lib/mock-data.ts && node --test .test-build/tests/ ; status=$?; rm -rf .test-build; exit $status",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@chakra-ui/react": "^2.10.9",
